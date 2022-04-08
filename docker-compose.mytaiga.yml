@@ -9,16 +9,28 @@ x-volumes:
 
 
 services:
-  echo:
+  check-envs:
     image: busybox
     env_file:
-      - docker-compose.mytaiga.env
+      - mytaiga.env
     command: env
+
+  taiga-manage:
+    image: taigaio/taiga-back:latest
+    env_file:
+      - mytaiga.env
+    depends_on:
+      - taiga-db
+    entrypoint: "python manage.py"
+    volumes: *default-back-volumes
+    networks:
+      - taiga
+
 
   taiga-db:
     image: postgres:12.3
     env_file:
-      - docker-compose.mytaiga.env
+      - mytaiga.env
     volumes:
       - taiga-db-data:/var/lib/postgresql/data
     networks:
@@ -27,7 +39,7 @@ services:
   taiga-back:
     image: taigaio/taiga-back:latest
     env_file:
-      - docker-compose.mytaiga.env
+      - mytaiga.env
     volumes: *default-back-volumes
     networks:
       - taiga
@@ -40,7 +52,7 @@ services:
     image: taigaio/taiga-back:latest
     entrypoint: ["/taiga-back/docker/async_entrypoint.sh"]
     env_file:
-      - docker-compose.mytaiga.env
+      - mytaiga.env
     volumes: *default-back-volumes
     networks:
       - taiga
@@ -52,7 +64,7 @@ services:
   taiga-async-rabbitmq:
     image: rabbitmq:3.8-management-alpine
     env_file:
-      - docker-compose.mytaiga.env
+      - mytaiga.env
     volumes:
       - taiga-async-rabbitmq-data:/var/lib/rabbitmq
     networks:
@@ -61,7 +73,7 @@ services:
   taiga-front:
     image: taigaio/taiga-front:latest
     env_file:
-      - docker-compose.mytaiga.env
+      - mytaiga.env
     networks:
       - taiga
     # volumes:
@@ -70,7 +82,7 @@ services:
   taiga-events:
     image: taigaio/taiga-events:latest
     env_file:
-      - docker-compose.mytaiga.env
+      - mytaiga.env
     networks:
       - taiga
     depends_on:
@@ -79,7 +91,7 @@ services:
   taiga-events-rabbitmq:
     image: rabbitmq:3.8-management-alpine
     env_file:
-      - docker-compose.mytaiga.env
+      - mytaiga.env
     volumes:
       - taiga-events-rabbitmq-data:/var/lib/rabbitmq
     networks:
@@ -88,7 +100,7 @@ services:
   taiga-protected:
     image: taigaio/taiga-protected:latest
     env_file:
-      - docker-compose.mytaiga.env
+      - mytaiga.env
     networks:
       - taiga
 
