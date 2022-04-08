@@ -1,0 +1,118 @@
+version: "3.5"
+
+
+x-volumes:
+  &default-back-volumes
+  - taiga-static-data:/taiga-back/static
+  - taiga-media-data:/taiga-back/media
+  # - ./config.py:/taiga-back/settings/config.py
+
+
+services:
+  echo:
+    image: busybox
+    env_file:
+      - docker-compose.mytaiga.env
+    command: env
+
+  taiga-db:
+    image: postgres:12.3
+    env_file:
+      - docker-compose.mytaiga.env
+    volumes:
+      - taiga-db-data:/var/lib/postgresql/data
+    networks:
+      - taiga
+
+  taiga-back:
+    image: taigaio/taiga-back:latest
+    env_file:
+      - docker-compose.mytaiga.env
+    volumes: *default-back-volumes
+    networks:
+      - taiga
+    depends_on:
+      - taiga-db
+      - taiga-events-rabbitmq
+      - taiga-async-rabbitmq
+
+  taiga-async:
+    image: taigaio/taiga-back:latest
+    entrypoint: ["/taiga-back/docker/async_entrypoint.sh"]
+    env_file:
+      - docker-compose.mytaiga.env
+    volumes: *default-back-volumes
+    networks:
+      - taiga
+    depends_on:
+      - taiga-db
+      - taiga-back
+      - taiga-async-rabbitmq
+
+  taiga-async-rabbitmq:
+    image: rabbitmq:3.8-management-alpine
+    env_file:
+      - docker-compose.mytaiga.env
+    volumes:
+      - taiga-async-rabbitmq-data:/var/lib/rabbitmq
+    networks:
+      - taiga
+
+  taiga-front:
+    image: taigaio/taiga-front:latest
+    env_file:
+      - docker-compose.mytaiga.env
+    networks:
+      - taiga
+    # volumes:
+    #   - ./conf.json:/usr/share/nginx/html/conf.json
+
+  taiga-events:
+    image: taigaio/taiga-events:latest
+    env_file:
+      - docker-compose.mytaiga.env
+    networks:
+      - taiga
+    depends_on:
+      - taiga-events-rabbitmq
+
+  taiga-events-rabbitmq:
+    image: rabbitmq:3.8-management-alpine
+    env_file:
+      - docker-compose.mytaiga.env
+    volumes:
+      - taiga-events-rabbitmq-data:/var/lib/rabbitmq
+    networks:
+      - taiga
+
+  taiga-protected:
+    image: taigaio/taiga-protected:latest
+    env_file:
+      - docker-compose.mytaiga.env
+    networks:
+      - taiga
+
+  taiga-gateway:
+    image: nginx:1.19-alpine
+    ports:
+      - "127.0.0.1:9000:80"
+    volumes:
+      - ./taiga-gateway/taiga.conf:/etc/nginx/conf.d/default.conf
+      - taiga-static-data:/taiga/static
+      - taiga-media-data:/taiga/media
+    networks:
+      - taiga
+    depends_on:
+      - taiga-front
+      - taiga-back
+      - taiga-events
+
+volumes:
+  taiga-static-data:
+  taiga-media-data:
+  taiga-db-data:
+  taiga-async-rabbitmq-data:
+  taiga-events-rabbitmq-data:
+
+networks:
+  taiga:
