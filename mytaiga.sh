@@ -1,4 +1,4 @@
-#!/usr/bin/env sh
+#!/usr/bin/env bash
 
 case "$1" in
     "check-envs" )
@@ -20,3 +20,4 @@ case "$1" in
         echo "Command '$@' not found"
     ;;
 esac
+
